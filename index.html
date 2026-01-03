@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dayflow HRMS - Login</title>
+  <link rel="stylesheet" href="styles.css">
+  <!-- Firebase SDK + firebase.js above -->
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+<script src="firebase.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Dayflow HRMS</h1>
+    
+    <!-- Login Form -->
+    <div id="login-form">
+      <h2>Login</h2>
+      <input type="email" id="login-email" placeholder="Email" required>
+      <input type="password" id="login-password" placeholder="Password" required>
+      <button onclick="login(document.getElementById('login-email').value, document.getElementById('login-password').value)">Login</button>
+    </div>
+    
+    <!-- Signup Form -->
+    <div id="signup-form">
+      <h2>Sign Up</h2>
+      <input type="text" id="signup-employeeid" placeholder="Employee ID" required>
+      <input type="email" id="signup-email" placeholder="Email" required>
+      <input type="password" id="signup-password" placeholder="Password" required>
+      <select id="signup-role">
+        <option value="employee">Employee</option>
+        <option value="admin">Admin</option>
+      </select>
+      <button onclick="signup(document.getElementById('signup-employeeid').value, document.getElementById('signup-email').value, document.getElementById('signup-password').value, document.getElementById('signup-role').value)">Sign Up</button>
+    </div>
+    
+    <button onclick="toggleForms()">Toggle Forms</button>
+  </div>
+  
+  <script>
+    function toggleForms() {
+      document.getElementById('login-form').style.display = document.getElementById('login-form').style.display === 'none' ? 'block' : 'none';
+      document.getElementById('signup-form').style.display = document.getElementById('signup-form').style.display === 'none' ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>

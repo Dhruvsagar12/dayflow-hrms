@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee Dashboard - Dayflow HRMS</title>
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Firebase SDK - NO REPLACEMENT NEEDED -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="firebase.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Employee Dashboard</h1>
+    <button onclick="logout()">Logout</button>
+    
+    <div id="loading">Loading...</div>
+    <div id="content" style="display:none;">
+      
+      <!-- Profile Card -->
+      <div class="card">
+        <h3>Profile</h3>
+        <p><strong>Employee ID:</strong> <span id="employee-id">-</span></p>
+        <p><strong>Email:</strong> <span id="employee-email">-</span></p>
+      </div>
+      
+      <!-- Today's Attendance -->
+      <div class="card">
+        <h3>Today's Attendance</h3>
+        <p><strong>Status:</strong> <span id="today-status">Not Marked</span></p>
+        <button id="checkin-btn" onclick="markAttendance('checkin')">Check In</button>
+        <button id="checkout-btn" onclick="markAttendance('checkout')" style="display:none;">Check Out</button>
+      </div>
+      
+      <!-- Apply Leave -->
+      <div class="card">
+        <h3>Apply Leave</h3>
+        <select id="leave-type">
+          <option value="paid">Paid Leave</option>
+          <option value="sick">Sick Leave</option>
+          <option value="unpaid">Unpaid Leave</option>
+        </select>
+        <input type="date" id="leave-from">
+        <input type="date" id="leave-to">
+        <textarea id="leave-remarks" placeholder="Remarks (optional)"></textarea>
+        <button onclick="applyLeave()">Submit Leave Request</button>
+      </div>
+      
+      <!-- Payroll (placeholder - update later) -->
+      <div class="card">
+        <h3>Payroll Summary</h3>
+        <p><strong>Basic Salary:</strong> ₹<span id="basic-salary">25,000</span></p>
+        <p><strong>Total Salary:</strong> ₹<span id="total-salary">30,000</span></p>
+        <p><em>Payroll data will be updated by Admin</em></p>
+      </div>
+      
+      <!-- Recent Leaves -->
+      <div class="card">
+        <h3>Your Leave Requests</h3>
+        <div id="my-leaves">Loading...</div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Runs when page loads
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = 'index.html';  // Not logged in → redirect
+        return;
+      }
+      
+      // Load user profile
+      const userData = await getCurrentUser();
+      document.getElementById('employee-id').textContent = userData.employee_id || 'N/A';
+      document.getElementById('employee-email').textContent = userData.email;
+      
+      // Check today's attendance
+      const today = new Date().toISOString().split('T')[0];  // YYYY-MM-DD format
+      const todayAtt = await db.collection('attendance')
+        .where('employee_id', '==', user.uid)
+        .where('date', '==', today)
+        .get();
+        
+      if (todayAtt.docs.length > 0) {
+        const attData = todayAtt.docs[0].data();
+        document.getElementById('today-status').textContent = attData.status || 'Checked In';
+        document.getElementById('checkin-btn').style.display = 'none';
+        if (!attData.check_out) {
+          document.getElementById('checkout-btn').style.display = 'inline-block';
+        }
+      }
+      
+      // Load user's leave requests
+      const leavesSnap = await db.collection('leaves')
+        .where('employee_id', '==', user.uid)
+        .orderBy('created_at', 'desc')
+        .limit(5)
+        .get();
+      let leaveHtml = '';
+      leavesSnap.forEach(doc => {
+        const leave = doc.data();
+        leaveHtml += `<p>${leave.leave_type} | ${leave.date_from} to ${leave.date_to} | <strong>${leave.status.toUpperCase()}</strong></p>`;
+      });
+      document.getElementById('my-leaves').innerHTML = leaveHtml || 'No leave requests';
+      
+      // Hide loading, show content
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    });
+    
+    // Mark attendance (check in/out)
+    async function markAttendance(type) {
+      const user = firebase.auth().currentUser;
+      const today = new Date().toISOString().split('T')[0];
+      
+      const attData = {
+        employee_id: user.uid,
+        date: today,
+        status: 'present'
+      };
+      
+      if (type === 'checkin') {
+        attData.check_in = new Date().toISOString();
+      } else {
+        attData.check_out = new Date().toISOString();
+      }
+      
+      // Use composite ID to avoid duplicates
+      await db.collection('attendance').doc(today + '_' + user.uid).set(attData);
+      location.reload();  // Refresh to update UI
+    }
+    
+    // Apply for leave
+    async function applyLeave() {
+      const user = firebase.auth().currentUser;
+      
+      // Basic validation
+      if (!document.getElementById('leave-from').value || !document.getElementById('leave-to').value) {
+        alert('Please select dates');
+        return;
+      }
+      
+      await db.collection('leaves').add({
+        employee_id: user.uid,
+        leave_type: document.getElementById('leave-type').value,
+        date_from: document.getElementById('leave-from').value,
+        date_to: document.getElementById('leave-to').value,
+        remarks: document.getElementById('leave-remarks').value,
+        status: 'pending',
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      alert('Leave request submitted for approval!');
+      // Clear form
+      document.getElementById('leave-from').value = '';
+      document.getElementById('leave-to').value = '';
+      document.getElementById('leave-remarks').value = '';
+    }
+    
+    // Logout
+    function logout() {
+      firebase.auth().signOut().then(() => {
+        window.location.href = 'index.html';
+      });
+    }
+  </script>
+</body>
+</html>
