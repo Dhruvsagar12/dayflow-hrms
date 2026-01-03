@@ -1,115 +1,170 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee Dashboard - Dayflow HRMS</title>
-    <link rel="stylesheet" href="styles.css">
-    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+  <title>Employee Dashboard - Dayflow HRMS</title>
+  <link rel="stylesheet" href="styles.css">
+  
+  <!-- Firebase SDK - NO REPLACEMENT NEEDED -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <script src="firebase.js"></script>
 </head>
 <body>
-    <div class="container">
-        <h1><ion-icon name="person-outline"></ion-icon> Employee Profile</h1>
-        
-        <!-- Profile Picture -->
-        <div class="card profile-pic-section">
-            <img id="profilePic" src="https://via.placeholder.com/150?text=DP" alt="Profile Picture" class="profile-img">
-            <input type="file" id="picUpload" accept="image/*" style="display:none;">
-            <button onclick="document.getElementById('picUpload').click()">Change Photo</button>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tab-buttons">
-            <button class="tab-btn active" onclick="showTab('personal')">Personal Details</button>
-            <button class="tab-btn" onclick="showTab('job')">Job Details</button>
-            <button class="tab-btn" onclick="showTab('salary')">Salary Structure</button>
-            <button class="tab-btn" onclick="showTab('docs')">Documents</button>
-        </div>
-
-        <!-- Personal Details -->
-        <div id="personal" class="tab-content active">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="empName" value="Dhruv Sagar" readonly>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Phone <span class="edit-icon" onclick="toggleEdit('phone')">✏️</span></label>
-                    <input type="tel" id="phone" value="+91 9876543210">
-                </div>
-                <div class="form-group">
-                    <label>Address <span class="edit-icon" onclick="toggleEdit('address')">✏️</span></label>
-                    <textarea id="address">Anand, Gujarat, India</textarea>
-                </div>
-            </div>
-            <button onclick="saveChanges('personal')" class="save-btn">Save Changes</button>
-        </div>
-
-        <!-- Job Details -->
-        <div id="job" class="tab-content">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Employee ID</label>
-                    <input type="text" value="EMP001" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Department</label>
-                    <input type="text" value="Computer Engineering" readonly>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Joining Date</label>
-                    <input type="date" value="2025-08-01" readonly>
-                </div>
-                <div class="form-group">
-                    <label>Role</label>
-                    <input type="text" value="Hackathon Developer" readonly>
-                </div>
-            </div>
-        </div>
-
-        <!-- Salary Structure -->
-        <div id="salary" class="tab-content">
-            <div class="salary-table">
-                <div class="salary-row">
-                    <span>Basic Salary</span>
-                    <span>₹25,000</span>
-                </div>
-                <div class="salary-row">
-                    <span>HRA</span>
-                    <span>₹7,500</span>
-                </div>
-                <div class="salary-row">
-                    <span>Special Allowance</span>
-                    <span>₹5,000</span>
-                </div>
-                <div class="salary-row total">
-                    <span>Gross Salary</span>
-                    <span>₹37,500</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Documents -->
-        <div id="docs" class="tab-content">
-            <div class="doc-item">
-                <ion-icon name="document-outline"></ion-icon>
-                <span>Aadhar Card.pdf</span>
-                <button>Download</button>
-            </div>
-            <div class="doc-item">
-                <ion-icon name="document-outline"></ion-icon>
-                <span>Pan Card.pdf</span>
-                <button>Download</button>
-            </div>
-            <div class="upload-section">
-                <input type="file" id="docUpload" multiple>
-                <button onclick="document.getElementById('docUpload').click()">Upload Document</button>
-            </div>
-        </div>
+  <div class="container">
+    <h1>Employee Dashboard</h1>
+    <button onclick="logout()">Logout</button>
+    
+    <div id="loading">Loading...</div>
+    <div id="content" style="display:none;">
+      
+      <!-- Profile Card -->
+      <div class="card">
+        <h3>Profile</h3>
+        <p><strong>Employee ID:</strong> <span id="employee-id">-</span></p>
+        <p><strong>Email:</strong> <span id="employee-email">-</span></p>
+      </div>
+      
+      <!-- Today's Attendance -->
+      <div class="card">
+        <h3>Today's Attendance</h3>
+        <p><strong>Status:</strong> <span id="today-status">Not Marked</span></p>
+        <button id="checkin-btn" onclick="markAttendance('checkin')">Check In</button>
+        <button id="checkout-btn" onclick="markAttendance('checkout')" style="display:none;">Check Out</button>
+      </div>
+      
+      <!-- Apply Leave -->
+      <div class="card">
+        <h3>Apply Leave</h3>
+        <select id="leave-type">
+          <option value="paid">Paid Leave</option>
+          <option value="sick">Sick Leave</option>
+          <option value="unpaid">Unpaid Leave</option>
+        </select>
+        <input type="date" id="leave-from">
+        <input type="date" id="leave-to">
+        <textarea id="leave-remarks" placeholder="Remarks (optional)"></textarea>
+        <button onclick="applyLeave()">Submit Leave Request</button>
+      </div>
+      
+      <!-- Payroll (placeholder - update later) -->
+      <div class="card">
+        <h3>Payroll Summary</h3>
+        <p><strong>Basic Salary:</strong> ₹<span id="basic-salary">25,000</span></p>
+        <p><strong>Total Salary:</strong> ₹<span id="total-salary">30,000</span></p>
+        <p><em>Payroll data will be updated by Admin</em></p>
+      </div>
+      
+      <!-- Recent Leaves -->
+      <div class="card">
+        <h3>Your Leave Requests</h3>
+        <div id="my-leaves">Loading...</div>
+      </div>
     </div>
-
-    <script src="employee.js"></script>
+  </div>
+  
+  <script>
+    // Runs when page loads
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        window.location.href = 'index.html';  // Not logged in → redirect
+        return;
+      }
+      
+      // Load user profile
+      const userData = await getCurrentUser();
+      document.getElementById('employee-id').textContent = userData.employee_id || 'N/A';
+      document.getElementById('employee-email').textContent = userData.email;
+      
+      // Check today's attendance
+      const today = new Date().toISOString().split('T')[0];  // YYYY-MM-DD format
+      const todayAtt = await db.collection('attendance')
+        .where('employee_id', '==', user.uid)
+        .where('date', '==', today)
+        .get();
+        
+      if (todayAtt.docs.length > 0) {
+        const attData = todayAtt.docs[0].data();
+        document.getElementById('today-status').textContent = attData.status || 'Checked In';
+        document.getElementById('checkin-btn').style.display = 'none';
+        if (!attData.check_out) {
+          document.getElementById('checkout-btn').style.display = 'inline-block';
+        }
+      }
+      
+      // Load user's leave requests
+      const leavesSnap = await db.collection('leaves')
+        .where('employee_id', '==', user.uid)
+        .orderBy('created_at', 'desc')
+        .limit(5)
+        .get();
+      let leaveHtml = '';
+      leavesSnap.forEach(doc => {
+        const leave = doc.data();
+        leaveHtml += `<p>${leave.leave_type} | ${leave.date_from} to ${leave.date_to} | <strong>${leave.status.toUpperCase()}</strong></p>`;
+      });
+      document.getElementById('my-leaves').innerHTML = leaveHtml || 'No leave requests';
+      
+      // Hide loading, show content
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = 'block';
+    });
+    
+    // Mark attendance (check in/out)
+    async function markAttendance(type) {
+      const user = firebase.auth().currentUser;
+      const today = new Date().toISOString().split('T')[0];
+      
+      const attData = {
+        employee_id: user.uid,
+        date: today,
+        status: 'present'
+      };
+      
+      if (type === 'checkin') {
+        attData.check_in = new Date().toISOString();
+      } else {
+        attData.check_out = new Date().toISOString();
+      }
+      
+      // Use composite ID to avoid duplicates
+      await db.collection('attendance').doc(today + '_' + user.uid).set(attData);
+      location.reload();  // Refresh to update UI
+    }
+    
+    // Apply for leave
+    async function applyLeave() {
+      const user = firebase.auth().currentUser;
+      
+      // Basic validation
+      if (!document.getElementById('leave-from').value || !document.getElementById('leave-to').value) {
+        alert('Please select dates');
+        return;
+      }
+      
+      await db.collection('leaves').add({
+        employee_id: user.uid,
+        leave_type: document.getElementById('leave-type').value,
+        date_from: document.getElementById('leave-from').value,
+        date_to: document.getElementById('leave-to').value,
+        remarks: document.getElementById('leave-remarks').value,
+        status: 'pending',
+        created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      alert('Leave request submitted for approval!');
+      // Clear form
+      document.getElementById('leave-from').value = '';
+      document.getElementById('leave-to').value = '';
+      document.getElementById('leave-remarks').value = '';
+    }
+    
+    // Logout
+    function logout() {
+      firebase.auth().signOut().then(() => {
+        window.location.href = 'index.html';
+      });
+    }
+  </script>
 </body>
 </html>
