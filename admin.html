@@ -1,167 +1,144 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Admin Dashboard - Dayflow HRMS</title>
-  <link rel="stylesheet" href="styles.css">
-  
-  <!-- Firebase SDK - NO CHANGES NEEDED -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-  <script src="firebase.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Dayflow HRMS</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 </head>
 <body>
-  <div class="container">
-    <h1>Admin / HR Dashboard</h1>
-    <button onclick="logout()">Logout</button>
-    
-    <div id="loading">Loading...</div>
-    <div id="content" style="display:none;">
-      
-      <!-- Employee List -->
-      <div class="card">
-        <h3>All Employees</h3>
-        <input type="text" id="search-employees" placeholder="Search employees..." onkeyup="searchEmployees()">
-        <div id="employee-list">Loading employees...</div>
-      </div>
-      
-      <!-- Pending Leave Requests -->
-      <div class="card">
-        <h3>Pending Leave Requests</h3>
-        <div id="pending-leaves">Loading...</div>
-      </div>
-      
-      <!-- Today's Attendance Overview -->
-      <div class="card">
-        <h3>Today's Attendance</h3>
-        <div id="today-attendance">Loading...</div>
-      </div>
+    <div class="container">
+        <h1><ion-icon name="shield-checkmark-outline"></ion-icon> Admin Panel</h1>
+        
+        <!-- Employee Selector -->
+        <div class="card employee-selector">
+            <label>Manage Employee:</label>
+            <select id="employeeSelect" onchange="loadEmployee()">
+                <option value="">Select Employee</option>
+                <option value="emp1">Dhruv Sagar (EMP001)</option>
+                <option value="emp2">Rahul Patel (EMP002)</option>
+                <option value="emp3">Priya Sharma (EMP003)</option>
+            </select>
+        </div>
+
+        <!-- Profile Picture (Admin Editable) -->
+        <div class="card profile-pic-section">
+            <img id="adminProfilePic" src="https://via.placeholder.com/150?text=DP" alt="Profile Picture" class="profile-img">
+            <input type="file" id="adminPicUpload" accept="image/*" style="display:none;">
+            <button onclick="document.getElementById('adminPicUpload').click()">Update Photo</button>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="showTab('admin-personal')">Personal Details</button>
+            <button class="tab-btn" onclick="showTab('admin-job')">Job Details</button>
+            <button class="tab-btn" onclick="showTab('admin-salary')">Salary Structure</button>
+            <button class="tab-btn" onclick="showTab('admin-docs')">Documents</button>
+        </div>
+
+        <!-- Personal Details (FULL EDIT) -->
+        <div id="admin-personal" class="tab-content active">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="adminEmpName" value="Dhruv Sagar">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Phone</label>
+                    <input type="tel" id="adminPhone" value="+91 9876543210">
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="adminEmail" value="dhruv@example.com">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Address</label>
+                <textarea id="adminAddress">Anand, Gujarat, India</textarea>
+            </div>
+            <button onclick="saveAdminChanges('personal')" class="save-btn">💾 Save All Changes</button>
+        </div>
+
+        <!-- Job Details (FULL EDIT) -->
+        <div id="admin-job" class="tab-content">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Employee ID</label>
+                    <input type="text" id="adminEmpId" value="EMP001">
+                </div>
+                <div class="form-group">
+                    <label>Department</label>
+                    <select id="adminDept">
+                        <option>Computer Engineering</option>
+                        <option>Mechanical Engineering</option>
+                        <option>HR</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Joining Date</label>
+                    <input type="date" id="adminJoinDate" value="2025-08-01">
+                </div>
+                <div class="form-group">
+                    <label>Role</label>
+                    <input type="text" id="adminRole" value="Hackathon Developer">
+                </div>
+            </div>
+            <button onclick="saveAdminChanges('job')" class="save-btn">💾 Update Job Details</button>
+        </div>
+
+        <!-- Salary Structure (FULL EDIT) -->
+        <div id="admin-salary" class="tab-content">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Basic Salary</label>
+                    <input type="number" id="adminBasic" value="25000">
+                </div>
+                <div class="form-group">
+                    <label>HRA (24%)</label>
+                    <input type="number" id="adminHRA" value="7500">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Allowance</label>
+                    <input type="number" id="adminAllowance" value="5000">
+                </div>
+                <div class="form-group">
+                    <label>Total Salary</label>
+                    <input type="number" id="adminTotal" value="37500" readonly>
+                </div>
+            </div>
+            <button onclick="calculateSalary()" class="save-btn">Calculate Total</button>
+            <button onclick="saveAdminChanges('salary')" class="save-btn">💾 Save Salary</button>
+        </div>
+
+        <!-- Documents (Admin Full Control) -->
+        <div id="admin-docs" class="tab-content">
+            <div class="docs-grid">
+                <div class="doc-item">
+                    <ion-icon name="document-outline"></ion-icon>
+                    <span>Aadhar Card.pdf</span>
+                    <button onclick="downloadDoc('aadhar')">📥 Download</button>
+                    <button class="delete-btn">🗑️ Delete</button>
+                </div>
+                <div class="doc-item">
+                    <ion-icon name="document-outline"></ion-icon>
+                    <span>Pan Card.pdf</span>
+                    <button onclick="downloadDoc('pan')">📥 Download</button>
+                    <button class="delete-btn">🗑️ Delete</button>
+                </div>
+            </div>
+            <div class="upload-section">
+                <input type="file" id="adminDocUpload" multiple>
+                <button onclick="document.getElementById('adminDocUpload').click()">📤 Upload Document</button>
+            </div>
+            <button onclick="saveAdminChanges('docs')" class="save-btn">💾 Save Document Changes</button>
+        </div>
     </div>
-  </div>
-  
-  <script>
-    // Page load - verify admin and load data
-    firebase.auth().onAuthStateChanged(async (user) => {
-      if (!user) {
-        window.location.href = 'index.html';
-        return;
-      }
-      
-      const userData = await getCurrentUser();
-      if (userData.role !== 'admin') {
-        window.location.href = 'employee.html';  // Not admin → employee dashboard
-        return;
-      }
-      
-      loadAdminData();
-      document.getElementById('loading').style.display = 'none';
-      document.getElementById('content').style.display = 'block';
-    });
-    
-    // Load all admin data
-    async function loadAdminData() {
-      // 1. Load all employees
-      const employeesSnap = await db.collection('employees').get();
-      let empHtml = '';
-      employeesSnap.forEach(doc => {
-        const emp = doc.data();
-        empHtml += `
-          <div class="emp-item">
-            <strong>${emp.employee_id}</strong> - ${emp.email} 
-            <span class="role-badge ${emp.role}">${emp.role.toUpperCase()}</span>
-          </div>
-        `;
-      });
-      document.getElementById('employee-list').innerHTML = empHtml || 'No employees';
-      
-      // 2. Load pending leaves
-      const pendingLeaves = await db.collection('leaves')
-        .where('status', '==', 'pending')
-        .orderBy('created_at', 'desc')
-        .get();
-      let leaveHtml = '';
-      pendingLeaves.forEach(doc => {
-        const leave = doc.data();
-        leaveHtml += `
-          <div class="leave-item">
-            <div>
-              <strong>Employee:</strong> ${leave.employee_id}<br>
-              <strong>Type:</strong> ${leave.leave_type}<br>
-              <strong>Dates:</strong> ${leave.date_from} to ${leave.date_to}<br>
-              <strong>Remarks:</strong> ${leave.remarks || 'None'}
-            </div>
-            <div>
-              <button onclick="approveLeave('${doc.id}')" class="btn-approve">✅ Approve</button>
-              <button onclick="rejectLeave('${doc.id}')" class="btn-reject">❌ Reject</button>
-            </div>
-          </div>
-        `;
-      });
-      document.getElementById('pending-leaves').innerHTML = leaveHtml || 'No pending requests';
-      
-      // 3. Today's attendance overview
-      const today = new Date().toISOString().split('T')[0];
-      const todayAtt = await db.collection('attendance')
-        .where('date', '==', today)
-        .get();
-      let attHtml = `<p><strong>${todayAtt.size}</strong> attendance records today</p>`;
-      document.getElementById('today-attendance').innerHTML = attHtml;
-    }
-    
-    // Approve leave request
-    async function approveLeave(leaveId) {
-      await db.collection('leaves').doc(leaveId).update({
-        status: 'approved',
-        admin_comment: 'Approved by admin',
-        approved_at: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      loadAdminData();  // Refresh list
-      alert('Leave approved!');
-    }
-    
-    // Reject leave request
-    async function rejectLeave(leaveId) {
-      await db.collection('leaves').doc(leaveId).update({
-        status: 'rejected',
-        admin_comment: 'Rejected by admin',
-        approved_at: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      loadAdminData();  // Refresh list
-      alert('Leave rejected!');
-    }
-    
-    // Search employees (client-side filter)
-    function searchEmployees() {
-      const searchTerm = document.getElementById('search-employees').value.toLowerCase();
-      const empItems = document.querySelectorAll('.emp-item');
-      empItems.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        item.style.display = text.includes(searchTerm) ? 'block' : 'none';
-      });
-    }
-    
-    // Logout
-    function logout() {
-      firebase.auth().signOut().then(() => {
-        window.location.href = 'index.html';
-      });
-    }
-  </script>
-  
-  <style>
-    /* Extra admin styles */
-    .emp-item { padding: 10px; border-bottom: 1px solid #eee; }
-    .role-badge { padding: 2px 8px; border-radius: 12px; font-size: 0.8em; }
-    .role-badge.employee { background: #d4edda; color: #155724; }
-    .role-badge.admin { background: #cce5ff; color: #004085; }
-    
-    .leave-item { 
-      display: flex; justify-content: space-between; align-items: flex-start; 
-      padding: 15px; border: 1px solid #ddd; margin: 10px 0; border-radius: 8px; 
-    }
-    .btn-approve { background: #28a745; color: white; margin-right: 5px; }
-    .btn-reject { background: #dc3545; color: white; }
-    button { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
-  </style>
+
+    <script src="admin.js"></script>
 </body>
 </html>
